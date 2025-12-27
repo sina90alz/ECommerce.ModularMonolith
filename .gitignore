@@ -1,0 +1,63 @@
+
+---
+
+# 📄 `.gitignore`
+
+This is a **clean, standard .NET + VS Code + Windows** `.gitignore`.
+
+```gitignore
+# =========================
+# .NET
+# =========================
+bin/
+obj/
+out/
+
+# =========================
+# Visual Studio / VS Code
+# =========================
+.vs/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# =========================
+# User-specific files
+# =========================
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# OS
+# =========================
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# =========================
+# Environment / Secrets
+# =========================
+appsettings.Development.json
+appsettings.Local.json
+
+# =========================
+# EF Core
+# =========================
+*.db
+*.db-shm
+*.db-wal
+
+# =========================
+# Tooling
+# =========================
+.dotnet/
