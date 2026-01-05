@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Products.Application.Interfaces;
 using Products.Domain.Entities;
 
@@ -16,5 +17,14 @@ public class ProductRepository : IProductRepository
     {
         _context.Products.Add(product);
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+        public async Task<Product?> GetByIdAsync(
+        Guid productId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Products
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
     }
 }

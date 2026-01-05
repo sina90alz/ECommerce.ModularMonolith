@@ -12,10 +12,12 @@
   <ItemGroup>
     <ProjectReference Include="..\Products.Application\Products.Application.csproj" />
     <ProjectReference Include="..\Products.Domain\Products.Domain.csproj" />
+    <ProjectReference Include="..\Products.Contracts\Products.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Persistence\" />
+    <Folder Include="Read\" />
   </ItemGroup>
 
   <PropertyGroup>

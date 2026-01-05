@@ -3,20 +3,19 @@
 public class Order
 {
     public Guid Id { get; private set; }
+    public Guid ProductId { get; private set; }
+    public decimal ProductPrice { get; private set; }
     public DateTime CreatedAt { get; private set; }
-    public string Status { get; private set; }
+    public string Status { get; private set; } = null!;
 
-    private Order() { } // EF
+    private Order() { } // For EF
 
-    public Order(Guid id)
+    public Order(Guid id, Guid productId, decimal productPrice)
     {
         Id = id;
+        ProductId = productId;
+        ProductPrice = productPrice;
         CreatedAt = DateTime.UtcNow;
         Status = "Created";
-    }
-
-    public void MarkAsPaid()
-    {
-        Status = "Paid";
     }
 }

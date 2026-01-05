@@ -1,22 +1,30 @@
 ﻿using MediatR;
 using Orders.Domain.Entities;
-using Orders.Application.Interfaces;
+using Products.Contracts;
 
 namespace Orders.Application.Commands.CreateOrder;
 
 public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Guid>
 {
-    private readonly IOrderRepository _repository;
+    private readonly IProductReadService _products;
 
-    public CreateOrderHandler(IOrderRepository repository)
+    public CreateOrderHandler(IProductReadService products)
     {
-        _repository = repository;
+        _products = products;
     }
 
     public async Task<Guid> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
     {
-        var order = new Order(Guid.NewGuid());
-        await _repository.AddAsync(order);
+        var product = await _products.GetByIdAsync(request.ProductId);
+
+        if (product is null)
+            throw new InvalidOperationException("Product not found");
+
+        var order = new Order(
+            Guid.NewGuid(),
+            product.Id,
+            product.Price);
+
         return order.Id;
     }
 }
