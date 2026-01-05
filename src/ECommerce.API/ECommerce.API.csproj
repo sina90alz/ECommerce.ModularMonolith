@@ -19,6 +19,7 @@
     <ProjectReference Include="..\Modules\Orders\Orders.Application\Orders.Application.csproj" />
     <ProjectReference Include="..\Modules\Orders\Orders.Infrastructure\Orders.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Products\Products.Application\Products.Application.csproj" />
+    <ProjectReference Include="..\Modules\Products\Products.Infrastructure\Products.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
