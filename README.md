@@ -25,13 +25,24 @@ The solution follows a **vertical modular structure**:
 
 ```
 src/
- ├─ ECommerce.API                # Composition Root (HTTP, DI, configuration)
+ ├─ ECommerce.API                 # Composition Root (HTTP, DI, pipelines, exception handling)
+ │
  ├─ Modules/
  │   ├─ Orders/
- │   │   ├─ Orders.Domain        # Domain entities & business rules
- │   │   ├─ Orders.Application   # Use cases (CQRS, MediatR)
- │   │   ├─ Orders.Infrastructure# EF Core, persistence, repositories
- │   │   └─ Orders.Contracts     # Public contracts (DTOs / future events)
+ │   │   ├─ Orders.Domain         # Domain entities & business rules (Order aggregate)
+ │   │   ├─ Orders.Application    # Use cases (CQRS, MediatR, validation)
+ │   │   ├─ Orders.Infrastructure # EF Core, OrdersDbContext, repositories
+ │   │   └─ Orders.Contracts      # Public contracts (future events / DTOs)
+ │   │
+ │   ├─ Products/
+ │   │   ├─ Products.Domain       # Domain entities (Product aggregate)
+ │   │   ├─ Products.Application  # Use cases & repository abstractions
+ │   │   ├─ Products.Infrastructure # EF Core, ProductsDbContext, repositories, read services
+ │   │   └─ Products.Contracts    # Public read contracts (ProductSnapshotDto, IProductReadService)
+ │
+ └─ tests/
+     └─ Architecture.Tests        # Enforced architecture & dependency rules
+
 ```
 
 ### Core Principles
