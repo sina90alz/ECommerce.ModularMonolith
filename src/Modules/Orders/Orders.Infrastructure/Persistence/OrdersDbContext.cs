@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Orders.Domain.Entities;
-using System.Collections.Generic;
 
 namespace Orders.Infrastructure.Persistence;
 
