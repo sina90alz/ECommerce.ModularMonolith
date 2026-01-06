@@ -9,6 +9,7 @@ public class Order : Entity
     public Guid ProductId { get; private set; }
     public decimal ProductPrice { get; private set; }
     public DateTime CreatedAt { get; private set; }
+    public DateTime? PaidAt { get; private set; }
     public string Status { get; private set; } = null!;
 
     private Order() { } // For EF Core
@@ -38,5 +39,19 @@ public class Order : Entity
         ));
 
         return order;
+    }
+
+    public void MarkAsPaid()
+    {
+        if (Status != "Created")
+            throw new InvalidOperationException("Only created orders can be paid.");
+
+        Status = "Paid";
+        PaidAt = DateTime.UtcNow;
+
+        AddDomainEvent(new OrderPaidDomainEvent(
+            Id,
+            PaidAt.Value
+        ));
     }
 }
