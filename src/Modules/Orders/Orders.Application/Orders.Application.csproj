@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <Folder Include="Commands\CancelOrder\" />
+    <Folder Include="Commands\PayOrder\" />
     <Folder Include="Events\" />
   </ItemGroup>
 
