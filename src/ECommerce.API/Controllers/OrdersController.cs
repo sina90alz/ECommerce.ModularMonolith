@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Orders.Application.Commands.CancelOrder;
 using Orders.Application.Commands.CreateOrder;
 
 namespace ECommerce.API.Controllers;
@@ -20,5 +21,12 @@ public class OrdersController : ControllerBase
     {
         var orderId = await _mediator.Send(command);
         return Ok(orderId);
+    }
+
+    [HttpPost("{orderId:guid}/cancel")]
+    public async Task<IActionResult> Cancel(Guid orderId, CancellationToken ct)
+    {
+        await _mediator.Send(new CancelOrderCommand(orderId), ct);
+        return NoContent();
     }
 }

@@ -1,4 +1,5 @@
-﻿using Orders.Application.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
+using Orders.Application.Interfaces;
 using Orders.Domain.Entities;
 using Orders.Infrastructure.Persistence;
 
@@ -15,5 +16,11 @@ public class OrderRepository : IOrderRepository
     {
         _context.Orders.Add(order);
         return Task.CompletedTask;
+    }
+
+    public Task<Order?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return _context.Orders
+            .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
     }
 }
