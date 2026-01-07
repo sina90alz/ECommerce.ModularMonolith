@@ -15,6 +15,7 @@ public static class DependencyInjection
             opt.UseSqlServer(connectionString));
 
         services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<DomainEventsDispatcher>();
 
         return services;
