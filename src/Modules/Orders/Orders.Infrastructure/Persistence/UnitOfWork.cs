@@ -1,24 +1,36 @@
+using Orders.Domain.Common;
+using Orders.Infrastructure.Outbox;
 using Orders.Infrastructure.Persistence;
 
 public class UnitOfWork : IUnitOfWork
 {
     private readonly OrdersDbContext _context;
-    private readonly DomainEventsDispatcher _domainEventsDispatcher;
+    private readonly OutboxWriter _outboxWriter;
 
     public UnitOfWork(
         OrdersDbContext context,
-        DomainEventsDispatcher domainEventsDispatcher)
+        OutboxWriter outboxWriter)
     {
         _context = context;
-        _domainEventsDispatcher = domainEventsDispatcher;
+        _outboxWriter = outboxWriter;
     }
 
-    public async Task CommitAsync(CancellationToken cancellationToken = default)
+    public async Task CommitAsync(CancellationToken ct = default)
     {
-        // Persist changes
-        await _context.SaveChangesAsync(cancellationToken);
+        // Collect domain events BEFORE SaveChanges
+        var domainEvents = _context.ChangeTracker
+            .Entries<Entity>()
+            .SelectMany(e => e.Entity.DomainEvents)
+            .ToList();
 
-        // Dispatch domain events AFTER commit
-        await _domainEventsDispatcher.DispatchAsync(_context, cancellationToken);
+        // Write to outbox (same transaction)
+        _outboxWriter.Write(_context, domainEvents);
+
+        // Clear domain events
+        foreach (var entity in _context.ChangeTracker.Entries<Entity>())
+            entity.Entity.ClearDomainEvents();
+
+        // Commit everything atomically
+        await _context.SaveChangesAsync(ct);
     }
 }
