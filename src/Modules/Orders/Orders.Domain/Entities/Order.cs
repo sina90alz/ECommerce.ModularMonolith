@@ -1,5 +1,6 @@
 ﻿using Orders.Domain.Common;
 using Orders.Domain.Events;
+using Orders.Domain.ValueObjects;
 
 namespace Orders.Domain.Entities;
 
@@ -11,7 +12,7 @@ public class Order : Entity
     public DateTime CreatedAt { get; private set; }
     public DateTime? PaidAt { get; private set; }
     public DateTime? CancelledAt { get; private set; }
-    public string Status { get; private set; } = null!;
+    public OrderStatus Status { get; private set; }
 
     private Order() { } // For EF Core
 
@@ -21,7 +22,7 @@ public class Order : Entity
         ProductId = productId;
         ProductPrice = productPrice;
         CreatedAt = DateTime.UtcNow;
-        Status = "Created";
+        Status = OrderStatus.Created;
     }
 
     public static Order Create(Guid productId, decimal productPrice)
@@ -44,10 +45,11 @@ public class Order : Entity
 
     public void MarkAsPaid()
     {
-        if (Status != "Created")
-            throw new InvalidOperationException("Only created orders can be paid.");
+        if (Status != OrderStatus.Created)
+            throw new InvalidOperationException(
+                $"Order in status {Status} cannot be paid.");
 
-        Status = "Paid";
+        Status = OrderStatus.Paid;
         PaidAt = DateTime.UtcNow;
 
         AddDomainEvent(new OrderPaidDomainEvent(
@@ -55,13 +57,14 @@ public class Order : Entity
             PaidAt.Value
         ));
     }
-    
+
     public void Cancel()
     {
-        if (Status != "Created")
-            throw new InvalidOperationException("Only created orders can be cancelled.");
+        if (Status != OrderStatus.Created)
+            throw new InvalidOperationException(
+                $"Order in status {Status} cannot be cancelled.");
 
-        Status = "Cancelled";
+        Status = OrderStatus.Cancelled;
         CancelledAt = DateTime.UtcNow;
 
         AddDomainEvent(new OrderCancelledDomainEvent(

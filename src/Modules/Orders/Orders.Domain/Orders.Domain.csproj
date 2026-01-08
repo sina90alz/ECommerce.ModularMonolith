@@ -13,6 +13,7 @@
   <ItemGroup>
     <Folder Include="Common\" />
     <Folder Include="Events\" />
+    <Folder Include="ValueObjects\" />
   </ItemGroup>
 
 </Project>
