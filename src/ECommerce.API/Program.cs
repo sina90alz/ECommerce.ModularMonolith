@@ -1,4 +1,5 @@
 using ECommerce.API.Behaviors;
+using ECommerce.API.Middleware;
 using FluentValidation;
 using MediatR;
 using Orders.Application.Commands.CreateOrder;
@@ -35,25 +36,8 @@ builder.Services.AddTransient(
 
 var app = builder.Build();
 
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 app.MapControllers();
-
-app.UseExceptionHandler(errorApp =>
-{
-    errorApp.Run(async context =>
-    {
-        context.Response.StatusCode = 400;
-        context.Response.ContentType = "application/json";
-
-        var exception = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
-
-        if (exception is ValidationException validationException)
-        {
-            var errors = validationException.Errors
-                .Select(e => new { e.PropertyName, e.ErrorMessage });
-
-            await context.Response.WriteAsJsonAsync(errors);
-        }
-    });
-});
 
 app.Run();

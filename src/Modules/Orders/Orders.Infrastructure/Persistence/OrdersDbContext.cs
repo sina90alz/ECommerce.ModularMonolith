@@ -11,9 +11,14 @@ public class OrdersDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Order>()
-            .Property(o => o.Status)
-            .HasConversion<int>();
+        modelBuilder.Entity<Order>(builder =>
+        {
+            builder.Property(o => o.Status)
+                .HasConversion<int>();
+
+            builder.Property(o => o.RowVersion)
+                .IsRowVersion(); // concurrency token
+        });
 
         base.OnModelCreating(modelBuilder);
     }
