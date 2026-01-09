@@ -18,6 +18,7 @@ public static class DependencyInjection
 
         services.AddScoped<IProductRepository, ProductRepository>();     
         services.AddScoped<IProductReadService, ProductReadService>();
+        services.AddHostedService<Inbox.OrdersEventsConsumer>();
 
         return services;
     }
