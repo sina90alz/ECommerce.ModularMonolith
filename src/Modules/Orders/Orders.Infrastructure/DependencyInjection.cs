@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Orders.Application.Interfaces;
+using Orders.Infrastructure.Messaging;
 using Orders.Infrastructure.Outbox;
 using Orders.Infrastructure.Persistence;
 
@@ -18,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<IOrderRepository, OrderRepository>();
         
         services.AddScoped<OutboxWriter>();
+        services.AddSingleton<IMessageBus>( _ => new RabbitMqMessageBus(hostName: "localhost"));
         services.AddHostedService<OutboxPublisher>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();

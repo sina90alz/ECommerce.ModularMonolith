@@ -2,6 +2,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Orders.Infrastructure.Persistence;
+using Orders.Infrastructure.Messaging;
+using System.Text;
 
 namespace Orders.Infrastructure.Outbox;
 
@@ -47,12 +49,19 @@ public sealed class OutboxPublisher : BackgroundService
                 {
                     try
                     {
-                        // 🔜 Later: publish to RabbitMQ / Kafka
-                        Console.WriteLine($"Publishing {msg.Type} ({msg.Id})");
+                        var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
 
                         msg.ProcessedOnUtc = DateTime.UtcNow;
                         msg.LastError = null;
                         msg.NextAttemptOnUtc = null;
+                        var body = Encoding.UTF8.GetBytes(msg.Payload);
+
+                        await bus.PublishAsync(
+                            exchange: "ecommerce.events",
+                            routingKey: $"orders.{msg.Type}",
+                            body: body,
+                            messageId: msg.Id.ToString(),
+                            ct: ct);
                     }
                     catch (Exception ex)
                     {
