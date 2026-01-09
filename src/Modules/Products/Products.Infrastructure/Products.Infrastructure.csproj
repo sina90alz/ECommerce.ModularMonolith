@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Inbox\" />
     <Folder Include="Persistence\" />
     <Folder Include="Read\" />
   </ItemGroup>
