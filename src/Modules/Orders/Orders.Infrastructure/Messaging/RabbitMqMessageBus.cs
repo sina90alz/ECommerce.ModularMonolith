@@ -23,7 +23,7 @@ public sealed class RabbitMqMessageBus : IMessageBus, IDisposable
         _channel.ExchangeDeclare(exchange: "ecommerce.events", type: ExchangeType.Topic, durable: true);
     }
 
-    // Publish a message to the specified exchange with routing key
+    // Publish a message
     public Task PublishAsync(
         string exchange,
         string routingKey,
