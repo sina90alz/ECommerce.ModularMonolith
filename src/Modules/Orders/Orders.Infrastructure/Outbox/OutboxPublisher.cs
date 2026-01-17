@@ -49,6 +49,9 @@ public sealed class OutboxPublisher : BackgroundService
                 {
                     try
                     {
+                        // Routing key should be stable, semantic, and versioned
+                        // Example: orders.order-paid.v1
+                        var routingKey = RoutingKeyFromType(msg.Type);
                         var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
 
                         msg.ProcessedOnUtc = DateTime.UtcNow;
@@ -58,7 +61,7 @@ public sealed class OutboxPublisher : BackgroundService
 
                         await bus.PublishAsync(
                             exchange: "ecommerce.events",
-                            routingKey: $"orders.{msg.Type}",
+                            routingKey: routingKey,
                             body: body,
                             messageId: msg.Id.ToString(),
                             ct: ct);
@@ -97,5 +100,17 @@ public sealed class OutboxPublisher : BackgroundService
     {
         var delaySeconds = Math.Min(Math.Pow(2, attemptCount), 300);
         return DateTime.UtcNow.AddSeconds(delaySeconds);
+    }
+
+    private static string RoutingKeyFromType(string type)
+    {
+        // Keep this explicit and stable (treat as API contract).
+        // If you already store RoutingKey in OutboxMessage, then use it instead.
+        return type switch
+        {
+            "OrderPaidIntegrationEvent" => "orders.order-paid.v1",
+            "OrderCancelledIntegrationEvent" => "orders.order-cancelled.v1",
+            _ => "orders.unknown.v1"
+        };
     }
 }
