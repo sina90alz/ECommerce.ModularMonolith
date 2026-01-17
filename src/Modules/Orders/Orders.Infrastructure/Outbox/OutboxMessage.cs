@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Orders.Contracts.Events;
 
 namespace Orders.Infrastructure.Outbox;
 
@@ -21,6 +22,19 @@ public class OutboxMessage
     public DateTime? NextAttemptOnUtc { get; set; }
     public string? LastError { get; set; }
     public DateTime? DeadLetteredOnUtc { get; set; }
+
+    public static OutboxMessage FromIntegrationEvent(IntegrationEvent evt)
+    {
+        return new OutboxMessage
+        {
+            Id = evt.EventId,  // stable across retries
+            Type = evt.GetType().Name,
+            Payload = JsonSerializer.Serialize(evt, evt.GetType()),
+            OccurredOnUtc = evt.OccurredOnUtc,
+            AttemptCount = 0,
+            NextAttemptOnUtc = DateTime.UtcNow
+        };
+    }
 
     public static OutboxMessage FromDomainEvent(object domainEvent)
     {
