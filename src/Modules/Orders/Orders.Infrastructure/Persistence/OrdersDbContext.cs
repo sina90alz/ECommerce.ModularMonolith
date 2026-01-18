@@ -21,6 +21,10 @@ public class OrdersDbContext : DbContext
         });
 
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Order>()
+            .Property(x => x.ProductPrice)
+            .HasPrecision(18, 2);
     }
     
     public DbSet<Order> Orders => Set<Order>();
