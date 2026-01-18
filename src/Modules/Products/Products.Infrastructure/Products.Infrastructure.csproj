@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <Folder Include="Inbox\" />
+    <Folder Include="Messaging\" />
     <Folder Include="Persistence\" />
     <Folder Include="Read\" />
   </ItemGroup>

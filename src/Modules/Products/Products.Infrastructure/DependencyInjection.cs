@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Products.Application.Interfaces;
 using Products.Contracts;
+using Products.Infrastructure.Inbox;
+using Products.Infrastructure.Messaging;
 using Products.Infrastructure.Persistence;
 using Products.Infrastructure.Read;
 
@@ -18,7 +20,8 @@ public static class DependencyInjection
 
         services.AddScoped<IProductRepository, ProductRepository>();     
         services.AddScoped<IProductReadService, ProductReadService>();
-        services.AddHostedService<Inbox.OrdersEventsConsumer>();
+        services.AddSingleton<IMessageBus, RabbitMqMessageBus>();
+        services.AddHostedService<OrdersEventsConsumer>();
 
         return services;
     }
