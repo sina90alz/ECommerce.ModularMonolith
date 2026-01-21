@@ -1,145 +1,171 @@
 # ECommerce.ModularMonolith
 
-A **production-oriented modular monolith** built with **ASP.NET Core**, **Clean Architecture**, and **CQRS**.  
-This project demonstrates how to design a system that is **modular, maintainable, and ready to evolve into microservices**.
+A **production-oriented modular monolith** built with **ASP.NET Core**, **Clean Architecture**, **CQRS**, and **asynchronous messaging**.  
+This project demonstrates how to design a system that is **modular, reliable, and ready to evolve into a distributed architecture**.
 
 ---
 
 ## 🎯 Purpose
 
-This repository is part of my hands-on learning journey to master:
+This repository is a hands-on architectural project focused on mastering:
 
 - Modular Monolith architecture
 - Clean Architecture principles
 - CQRS with MediatR
 - Database-per-module strategy
-- Real-world ASP.NET Core application wiring
+- Reliable asynchronous messaging
+- Outbox & Inbox patterns
+- RabbitMQ fundamentals
+- Distributed-system safety inside a monolith
 
-The focus is on **correct architecture and boundaries**, not feature quantity.
+The focus is on **correct boundaries, reliability, and evolvability**, not feature quantity.
 
 ---
 
 ## 🧱 Architecture Overview
 
-The solution follows a **vertical modular structure**:
+The solution follows a **vertical modular structure** with **strong internal boundaries**:
 
 ```
 src/
- ├─ ECommerce.API                 # Composition Root (HTTP, DI, pipelines, exception handling)
+ ├─ ECommerce.API                  # Composition Root (HTTP, DI, hosted services)
  │
  ├─ Modules/
  │   ├─ Orders/
- │   │   ├─ Orders.Domain         # Domain entities & business rules (Order aggregate)
- │   │   ├─ Orders.Application    # Use cases (CQRS, MediatR, validation)
- │   │   ├─ Orders.Infrastructure # EF Core, OrdersDbContext, repositories
- │   │   └─ Orders.Contracts      # Public contracts (future events / DTOs)
+ │   │   ├─ Orders.Domain          # Order aggregate, business rules
+ │   │   ├─ Orders.Application     # CQRS commands, handlers, validation
+ │   │   ├─ Orders.Infrastructure  # EF Core, DbContext, Outbox, RabbitMQ publisher
+ │   │   └─ Orders.Contracts       # Integration events / public contracts
  │   │
  │   ├─ Products/
- │   │   ├─ Products.Domain       # Domain entities (Product aggregate)
- │   │   ├─ Products.Application  # Use cases & repository abstractions
- │   │   ├─ Products.Infrastructure # EF Core, ProductsDbContext, repositories, read services
- │   │   └─ Products.Contracts    # Public read contracts (ProductSnapshotDto, IProductReadService)
+ │   │   ├─ Products.Domain        # Product aggregate (stock, pricing)
+ │   │   ├─ Products.Application   # Use cases & abstractions
+ │   │   ├─ Products.Infrastructure# EF Core, Inbox, RabbitMQ consumer
+ │   │   └─ Products.Contracts     # Public read contracts
  │
  └─ tests/
-     └─ Architecture.Tests        # Enforced architecture & dependency rules
-
+     └─ Architecture.Tests         # Enforced architecture & dependency rules
 ```
-
-### Core Principles
-
-- Each module owns its **domain, application, and persistence**
-- No shared `DbContext`
-- No cross-module domain references
-- Infrastructure depends on Application & Domain (never the opposite)
-- API acts as the **composition root**
 
 ---
 
-## 🧩 Current Module: Orders
+## 🧭 Core Principles
 
-### Implemented features
+- Each module owns its **Domain, Application, and Infrastructure**
+- **No shared `DbContext`**
+- **No cross-module domain references**
+- Modules communicate **only via integration events or contracts**
+- Clean Architecture dependency flow:
+  - Infrastructure → Application → Domain
+- API acts as the **Composition Root**
+- CQRS by default:
+  - Commands mutate state
+  - Queries are isolated
+- **Reliability over immediacy**
+  - State changes are persisted first
+  - Events are published asynchronously
+- Infrastructure is **replaceable**
+  - RabbitMQ is abstracted behind `IMessageBus`
+  - Business logic is transport-agnostic
 
-- Create Order use case
+---
+
+## 🧩 Modules
+
+### Orders Module
+
+**Responsibilities**
+- Owns the Order aggregate
+- Handles order lifecycle:
+  - Create
+  - Pay
+  - Cancel
+
+**Key concepts**
 - CQRS with MediatR
-- EF Core persistence
-- SQL Server database
-- Module-owned migrations
+- EF Core with module-owned DbContext
+- Domain invariants enforced inside aggregate
+- Integration events emitted via Outbox
 
-### Example endpoint
-
+**Endpoints**
 ```
 POST /api/orders
+POST /api/orders/{id}/pay
+POST /api/orders/{id}/cancel
 ```
 
-Returns:
+---
 
-```
-<Guid>
-```
+### Products Module
+
+**Responsibilities**
+- Owns the Product aggregate
+- Manages product stock
+- Reacts to Orders integration events
+
+**Key concepts**
+- Inbox pattern for idempotency
+- Asynchronous event consumption
+- Stock updates driven by Orders events
+- Safe reprocessing & duplicate protection
 
 ---
 
 ## 🗄️ Database Strategy
 
-- One database per module (logical isolation)
-- Orders module uses `OrdersDb`
-- Migrations are stored inside the module:
-
-```
-Orders.Infrastructure/Persistence/Migrations
-```
-
-This makes the module **ready to be extracted as a microservice** later with minimal refactoring.
+- **Database per module** (logical isolation)
+- Orders and Products each own their schema
+- EF Core migrations live inside the module
 
 ---
 
-## 🚀 Running the project
+## 🔄 Asynchronous Messaging
 
-### Prerequisites
+- RabbitMQ as message broker
+- Topic exchange: `ecommerce.events`
+- Integration-event-based communication
+- Outbox (Orders) + Inbox (Products)
 
-- .NET SDK 9.x
-- SQL Server (LocalDB is sufficient)
+---
 
-### Run locally
+## 🧠 Distributed-System Readiness
+
+The system already supports:
+- At-least-once delivery
+- Idempotency
+- Explicit retries
+- Poison-message isolation
+- Transport abstraction
+
+---
+
+## 🚀 Running the Project
+
+### Start RabbitMQ
+
+```bash
+docker run -d --name rabbitmq   -p 5672:5672   -p 15672:15672   rabbitmq:3-management
+```
+
+RabbitMQ UI:
+```
+http://localhost:15672
+```
+
+---
+
+### Run the API
 
 ```bash
 dotnet build
 dotnet run --project src/ECommerce.API
 ```
 
-The API starts on:
-
-```
-http://localhost:5240
-```
-
-### Test the endpoint (PowerShell)
-
-```powershell
-Invoke-RestMethod -Method Post -Uri http://localhost:5240/api/orders
-```
-
 ---
 
-## 🧠 Why a Modular Monolith?
+## 🔮 Next Steps
 
-A modular monolith allows you to:
-
-- Keep deployment simple
-- Enforce strong internal boundaries
-- Avoid distributed-system complexity too early
-- Transition to microservices **only when it makes sense**
-
-This project shows how to do that **properly**.
-
----
-
-## 🔮 Planned Improvements
-
-- Enforce strict module boundaries
-- Add Products and Customers modules
-- Validation & pipeline behaviors
-- Asynchronous communication (events)
-- Microservice extraction readiness
-
----
+- Message versioning
+- Delayed retries
+- Kafka support
+- Observability & tracing
