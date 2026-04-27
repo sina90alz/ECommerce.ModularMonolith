@@ -1,171 +1,187 @@
 # ECommerce.ModularMonolith
 
-A **production-oriented modular monolith** built with **ASP.NET Core**, **Clean Architecture**, **CQRS**, and **asynchronous messaging**.  
-This project demonstrates how to design a system that is **modular, reliable, and ready to evolve into a distributed architecture**.
+Production-oriented modular monolith built with ASP.NET Core, Clean Architecture, CQRS, EF Core, SQL Server, RabbitMQ, and Outbox/Inbox messaging.
 
----
+The project focuses on module boundaries, reliable asynchronous communication, and an architecture that can evolve toward distributed services without starting from scratch.
 
-## 🎯 Purpose
+## Architecture Overview
 
-This repository is a hands-on architectural project focused on mastering:
+The API is the composition root. Business capabilities live in separate modules, and each module owns its own domain model, application layer, infrastructure, and database context.
 
-- Modular Monolith architecture
-- Clean Architecture principles
-- CQRS with MediatR
-- Database-per-module strategy
-- Reliable asynchronous messaging
-- Outbox & Inbox patterns
-- RabbitMQ fundamentals
-- Distributed-system safety inside a monolith
-
-The focus is on **correct boundaries, reliability, and evolvability**, not feature quantity.
-
----
-
-## 🧱 Architecture Overview
-
-The solution follows a **vertical modular structure** with **strong internal boundaries**:
-
-```
+```text
 src/
- ├─ ECommerce.API                  # Composition Root (HTTP, DI, hosted services)
- │
- ├─ Modules/
- │   ├─ Orders/
- │   │   ├─ Orders.Domain          # Order aggregate, business rules
- │   │   ├─ Orders.Application     # CQRS commands, handlers, validation
- │   │   ├─ Orders.Infrastructure  # EF Core, DbContext, Outbox, RabbitMQ publisher
- │   │   └─ Orders.Contracts       # Integration events / public contracts
- │   │
- │   ├─ Products/
- │   │   ├─ Products.Domain        # Product aggregate (stock, pricing)
- │   │   ├─ Products.Application   # Use cases & abstractions
- │   │   ├─ Products.Infrastructure# EF Core, Inbox, RabbitMQ consumer
- │   │   └─ Products.Contracts     # Public read contracts
- │
- └─ tests/
-     └─ Architecture.Tests         # Enforced architecture & dependency rules
+|-- ECommerce.API
+|   |-- Controllers
+|   |-- Behaviors
+|   `-- Middleware
+`-- Modules/
+    |-- Orders/
+    |   |-- Orders.Domain
+    |   |-- Orders.Application
+    |   |-- Orders.Infrastructure
+    |   `-- Orders.Contracts
+    `-- Products/
+        |-- Products.Domain
+        |-- Products.Application
+        |-- Products.Infrastructure
+        `-- Products.Contracts
+
+tests/
+`-- Architecture.Tests
 ```
 
----
+Each module follows the same internal structure:
 
-## 🧭 Core Principles
+- `Domain`: aggregates, value objects, domain events, and business rules.
+- `Application`: use cases, CQRS commands, handlers, validators, and abstractions.
+- `Infrastructure`: EF Core, repositories, messaging, background services, and module wiring.
+- `Contracts`: public contracts that can be referenced by other modules.
 
-- Each module owns its **Domain, Application, and Infrastructure**
-- **No shared `DbContext`**
-- **No cross-module domain references**
-- Modules communicate **only via integration events or contracts**
-- Clean Architecture dependency flow:
-  - Infrastructure → Application → Domain
-- API acts as the **Composition Root**
-- CQRS by default:
-  - Commands mutate state
-  - Queries are isolated
-- **Reliability over immediacy**
-  - State changes are persisted first
-  - Events are published asynchronously
-- Infrastructure is **replaceable**
-  - RabbitMQ is abstracted behind `IMessageBus`
-  - Business logic is transport-agnostic
+Dependency direction follows Clean Architecture:
 
----
-
-## 🧩 Modules
-
-### Orders Module
-
-**Responsibilities**
-- Owns the Order aggregate
-- Handles order lifecycle:
-  - Create
-  - Pay
-  - Cancel
-
-**Key concepts**
-- CQRS with MediatR
-- EF Core with module-owned DbContext
-- Domain invariants enforced inside aggregate
-- Integration events emitted via Outbox
-
-**Endpoints**
+```text
+Infrastructure -> Application -> Domain
 ```
+
+Core rules:
+
+- No shared DbContext between modules.
+- No cross-module domain references.
+- Modules communicate through contracts and integration events.
+- RabbitMQ is hidden behind module-local message bus abstractions.
+- Architecture tests enforce the main dependency boundaries.
+
+## Runtime Flow
+
+Typical request flow:
+
+```text
+HTTP Controller -> MediatR Command -> Application Handler -> Domain Model -> Repository/DbContext
+```
+
+Order creation uses `Products.Contracts` to read the product snapshot needed by the Orders module. Order payment and cancellation write integration events to the Orders Outbox in the same database transaction as the order state change. A background publisher sends those events to RabbitMQ. The Products module consumes the events through its Inbox and updates stock idempotently.
+
+```text
+OrdersDb -> OutboxPublisher -> RabbitMQ exchange -> Products Inbox -> ProductsDb
+```
+
+## Modules
+
+### Orders
+
+Owns order creation, payment, and cancellation.
+
+Key implementation details:
+
+- Order aggregate and domain events.
+- CQRS commands handled with MediatR.
+- EF Core persistence with `OrdersDbContext`.
+- Outbox table, retry tracking, and dead-letter marking.
+- RabbitMQ publisher hosted from the API process.
+
+Endpoints:
+
+```http
 POST /api/orders
-POST /api/orders/{id}/pay
-POST /api/orders/{id}/cancel
+POST /api/orders/{orderId}/pay
+POST /api/orders/{orderId}/cancel
 ```
 
----
+### Products
 
-### Products Module
+Owns products and stock.
 
-**Responsibilities**
-- Owns the Product aggregate
-- Manages product stock
-- Reacts to Orders integration events
+Key implementation details:
 
-**Key concepts**
-- Inbox pattern for idempotency
-- Asynchronous event consumption
-- Stock updates driven by Orders events
-- Safe reprocessing & duplicate protection
+- Product aggregate with stock rules.
+- EF Core persistence with `ProductsDbContext`.
+- Product read contract exposed through `Products.Contracts`.
+- Inbox table for duplicate-message protection.
+- RabbitMQ consumer hosted from the API process.
 
----
+Endpoint:
 
-## 🗄️ Database Strategy
+```http
+POST /api/products
+```
 
-- **Database per module** (logical isolation)
-- Orders and Products each own their schema
-- EF Core migrations live inside the module
+## Persistence
 
----
+The solution uses logical database-per-module ownership:
 
-## 🔄 Asynchronous Messaging
+- Orders owns `OrdersDbContext`, order tables, and outbox messages.
+- Products owns `ProductsDbContext`, product tables, and inbox messages.
+- EF Core migrations live inside each module's Infrastructure project.
 
-- RabbitMQ as message broker
-- Topic exchange: `ecommerce.events`
-- Integration-event-based communication
-- Outbox (Orders) + Inbox (Products)
+## Messaging
 
----
+RabbitMQ is used for asynchronous module communication.
 
-## 🧠 Distributed-System Readiness
+- Exchange: `ecommerce.events`
+- Products queue: `products.inbox`
+- Orders publishes events through the Outbox.
+- Products consumes order events through the Inbox.
+- Supported routing keys include `orders.order-paid.v1` and `orders.order-cancelled.v1`.
 
-The system already supports:
-- At-least-once delivery
-- Idempotency
-- Explicit retries
-- Poison-message isolation
-- Transport abstraction
+Reliability behavior:
 
----
+- Orders persists state changes before publishing messages.
+- The Outbox publisher retries failed publishes and marks exhausted messages as dead-lettered.
+- Products records message IDs in the Inbox before applying stock changes.
+- Duplicate messages are acknowledged without applying the same stock change twice.
 
-## 🚀 Running the Project
+## Requirements
 
-### Start RabbitMQ
+- .NET 9 SDK
+- SQL Server
+- Docker, for local RabbitMQ
+
+## Run Locally
+
+Start RabbitMQ:
 
 ```bash
-docker run -d --name rabbitmq   -p 5672:5672   -p 15672:15672   rabbitmq:3-management
+docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 ```
 
-RabbitMQ UI:
-```
+RabbitMQ management UI:
+
+```text
 http://localhost:15672
 ```
 
----
+Configure SQL Server connection strings in `src/ECommerce.API/appsettings.json` if needed:
 
-### Run the API
+```json
+{
+  "ConnectionStrings": {
+    "OrdersDb": "Server=localhost;Database=OrdersDb;Trusted_Connection=True;TrustServerCertificate=True",
+    "ProductsDb": "Server=localhost;Database=ProductsDb;Trusted_Connection=True;TrustServerCertificate=True"
+  }
+}
+```
+
+Build and run:
 
 ```bash
 dotnet build
 dotnet run --project src/ECommerce.API
 ```
 
----
+Run tests:
 
-## 🔮 Next Steps
+```bash
+dotnet test
+```
 
-- Message versioning
-- Delayed retries
-- Kafka support
-- Observability & tracing
+## Project Status
+
+Implemented:
+
+- Orders and Products modules
+- CQRS command handling
+- Module-owned EF Core DbContexts
+- RabbitMQ integration events
+- Orders Outbox with retries and dead-letter marking
+- Products Inbox with idempotency
+- Architecture boundary tests
